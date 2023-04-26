@@ -3,39 +3,9 @@
 #include <SoftwareSerial.h>
 #include <FastLED.h>
 #include <ArduinoOTA.h>
+#include "const.h"
 
 EspSoftwareSerial::UART rxSerial;
-
-#define RX_SERIAL_RX_PIN D7
-#define RX_SERIAL_TX_PIN D8
-#define RX_BAUD 57600
-
-#define CHANNEL_HIGH_MIN 1999
-#define CHANNEL_LOW_MAX 1001
-#define SWITCH_HIGH 2000
-#define SWITCH_LOW 1000
-
-#define ARM_CHANNEL 5
-#define LED_CONTROL_CHANNEL 7
-#define THROTTLE_CHANNEL 3
-#define ROLL_CHANNEL 1
-#define PITCH_CHANNEL 2
-#define YAW_CHANNEL 4
-
-#define NUM_LEDS 9
-#define LED_PIN D4
-// https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
-#define LED_IDLE_BREATHING_COLOR_HUE 96
-
-// #define WIFI_SSID "ssid"
-// #define WIFI_PASSWORD "password"
-
-// 300 * 200ms = 1 minute
-#define WIFI_MAX_CONNECT_ATTEMPTS 300
-#define WIFI_HOTSPOT_SSID "CRSF Visualizer"
-#define WIFI_HOTSPOT_PASSWORD "password"
-// 3 minutes in ms (3 * 60 * 1000)
-#define WIFI_HOTSPOT_TIMEOUT 180000
 
 CrsfSerial crsf(rxSerial, RX_BAUD);
 CRGBArray<NUM_LEDS> leds;
