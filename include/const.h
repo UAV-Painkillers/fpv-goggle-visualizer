@@ -35,6 +35,6 @@
 // how many times shall we try to connect to the wifi before we create a hotspot? (each attempt is 200ms)
 #define WIFI_MAX_CONNECT_ATTEMPTS 300 // 300 * 200ms = 1 minute
 #define WIFI_HOTSPOT_SSID "CRSF Visualizer"
-#define WIFI_HOTSPOT_PASSWORD "password"
+#define WIFI_HOTSPOT_PASSWORD "jappy is awesome"
 // wifi will automatically shut down after 3 minutes of waiting for OTA connections
 #define WIFI_HOTSPOT_TIMEOUT 180000 // 3 minutes in ms (3 * 60 * 1000)
