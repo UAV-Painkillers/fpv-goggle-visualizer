@@ -15,8 +15,17 @@ EspSoftwareSerial::UART rxSerial;
 #define SWITCH_HIGH 2000
 #define SWITCH_LOW 1000
 
+#define ARM_CHANNEL 5
+#define LED_CONTROL_CHANNEL 7
+#define THROTTLE_CHANNEL 3
+#define ROLL_CHANNEL 1
+#define PITCH_CHANNEL 2
+#define YAW_CHANNEL 4
+
 #define NUM_LEDS 9
 #define LED_PIN D4
+// https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
+#define LED_IDLE_BREATHING_COLOR_HUE 96
 
 // #define WIFI_SSID "ssid"
 // #define WIFI_PASSWORD "password"
@@ -25,6 +34,8 @@ EspSoftwareSerial::UART rxSerial;
 #define WIFI_MAX_CONNECT_ATTEMPTS 300
 #define WIFI_HOTSPOT_SSID "CRSF Visualizer"
 #define WIFI_HOTSPOT_PASSWORD "password"
+// 3 minutes in ms (3 * 60 * 1000)
+#define WIFI_HOTSPOT_TIMEOUT 180000
 
 CrsfSerial crsf(rxSerial, RX_BAUD);
 CRGBArray<NUM_LEDS> leds;
@@ -35,19 +46,21 @@ enum LedSwitchState {
   LED_SWITCH_STATE_HIGH,
 };
 
-bool isArmed = false;
-int throttle = CHANNEL_LOW_MAX;
-int roll = CHANNEL_LOW_MAX;
-int pitch = CHANNEL_LOW_MAX;
-int yaw = CHANNEL_LOW_MAX;
-LedSwitchState ledSwitch = LED_SWITCH_STATE_LOW;
-bool otaIsActive = false;
+static bool isArmed = false;
+static int throttle = CHANNEL_LOW_MAX;
+static int roll = CHANNEL_LOW_MAX;
+static int pitch = CHANNEL_LOW_MAX;
+static int yaw = CHANNEL_LOW_MAX;
+static LedSwitchState ledSwitch = LED_SWITCH_STATE_LOW;
+static bool otaIsActive = false;
 
 
-bool wifiEnabled = false;
-int wifiConnectAttempts = 0;
-bool wifiConnected = false;
-bool isInHotspotMode = false;
+static bool wifiEnabled = false;
+static int wifiConnectAttempts = 0;
+static bool wifiConnected = false;
+static bool isInHotspotMode = false;
+static unsigned long wifiConnectionStartTime = 0;
+static bool otaUploadInProgress = false;
 
 IPAddress wifi_hotspot_local_IP(10, 0, 0, 1);
 IPAddress wifi_hotspot_gateway(10, 0, 0, 2);
@@ -55,13 +68,13 @@ IPAddress wifi_hotspot_subnet(255, 0, 0, 0);
 
 void onChannelChanged()
 {
-  roll = crsf.getChannel(1);
-  pitch = crsf.getChannel(2);
-  throttle = crsf.getChannel(3);
-  yaw = crsf.getChannel(4);
-  isArmed = crsf.getChannel(5) == SWITCH_HIGH;
-  
-  int ledSwitchValue = crsf.getChannel(7);
+  roll = crsf.getChannel(ROLL_CHANNEL);
+  pitch = crsf.getChannel(PITCH_CHANNEL);
+  throttle = crsf.getChannel(THROTTLE_CHANNEL);
+  yaw = crsf.getChannel(YAW_CHANNEL);
+  isArmed = crsf.getChannel(ARM_CHANNEL) == SWITCH_HIGH;
+  int ledSwitchValue = crsf.getChannel(LED_CONTROL_CHANNEL);
+
   if (ledSwitchValue == SWITCH_HIGH) {
     ledSwitch = LED_SWITCH_STATE_HIGH;
   } else if (ledSwitchValue == SWITCH_LOW) {
@@ -120,10 +133,12 @@ inline void setupArduinoOTA() {
 
   ArduinoOTA.onStart([]() {
     Serial.println("OTA Upload started");
+    otaUploadInProgress = true;
   });
 
   ArduinoOTA.onEnd([]() {
     Serial.println("\nOTA Upload finished");
+    otaUploadInProgress = false;
 
     // reboot
     ESP.restart();
@@ -134,6 +149,7 @@ inline void setupArduinoOTA() {
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
+    otaUploadInProgress = false;
     Serial.printf("Error[%u]: ", error);
     if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
     else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
@@ -157,108 +173,131 @@ void setup()
   Serial.println("setup() done");
 }
 
-static uint8_t hue = 0;
-static uint8_t brightness = 0;
-static bool isIncreasing = true;
-inline void ledIdleAnimation() {
-  // slow breathing effect with slow color change
-
-  EVERY_N_MILLISECONDS(200) {
-    hue++;
-  }
-
-  EVERY_N_MILLISECONDS(10) {
-    if (isIncreasing) {
-      if (brightness < 255) {
-        brightness++;
-      } else {
-        isIncreasing = false;
-      }
-    } else {
-      if (brightness > 0) {
-        brightness--;
-      } else {
-        isIncreasing = true;
-      }
-    }
+static uint8_t rainbow_hue = 0;
+inline void ledRainbowSlowAnimation() {
+  EVERY_N_MILLISECONDS(15) {
+    rainbow_hue++;
 
     for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CHSV(hue, 255, brightness);
+      int ledHue = rainbow_hue + (i * 20);
+      if (ledHue > 255) {
+        ledHue -= 255;
+      }
+      leds[i] = CHSV(ledHue, 255, 255);
     }
 
     FastLED.show();
   }
 }
 
-inline void ledIsArmedAnimation() {
-  // fast blinking red
-  EVERY_N_MILLISECONDS(100) {
-    if (brightness == 0) {
-      brightness = 255;
+static uint8_t breathing_is_increasing = true;
+static uint8_t breathing_brightness = 0;
+inline void ledBreathingAnimation(uint8_t hue) {
+  EVERY_N_MILLISECONDS(10) {
+    if (breathing_is_increasing) {
+      breathing_brightness++;
+      if (breathing_brightness >= 255) {
+        breathing_is_increasing = false;
+      }
     } else {
-      brightness = 0;
+      breathing_brightness--;
+      if (breathing_brightness <= 0) {
+        breathing_is_increasing = true;
+      }
     }
 
     for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CHSV(0, 255, brightness);
+      leds[i] = CHSV(hue, 0, breathing_brightness);
     }
 
     FastLED.show();
   }
+}
 
+static uint8_t blinking_is_on = false;
+inline void ledBlinkingAnimationFrame(uint8_t hue) {
+  if (blinking_is_on) {
+    blinking_is_on = false;
+    for (int i = 0; i < NUM_LEDS; i++) {
+      leds[i] = CHSV(hue, 255, 0);
+    }
+  } else {
+    blinking_is_on = true;
+    for (int i = 0; i < NUM_LEDS; i++) {
+      leds[i] = CHSV(hue, 255, 255);
+    }
+  }
+
+  FastLED.show();
+}
+inline void ledBlinkingAnimation(uint8_t hue, int blinkInterval) {
+  EVERY_N_MILLISECONDS(blinkInterval) {
+    ledBlinkingAnimationFrame(hue);
+  }
+}
+
+static int ledIsArmedBlinkInterval = 0;
+static int ledIsArmedMillisCounter = 0;
+inline void ledIsArmedAnimation() {
+  // blink red, speed is defined by throttle position (1000 - 2000) which is mapped to 25 - 1000, more throttle = faster blinking
+  uint8_t red_hue = 0;
+  EVERY_N_MILLISECONDS(1) {
+    int cappedThrottle = throttle;
+    if (cappedThrottle > 2000) {
+      cappedThrottle = 2000;
+    }
+    if (cappedThrottle < 1000) {
+      cappedThrottle = 1000;
+    }
+
+    int ledIsArmedBlinkInterval = map(cappedThrottle, 1000, 2000, 200, 25);
+
+    ledIsArmedMillisCounter++;
+
+    if (ledIsArmedMillisCounter > ledIsArmedBlinkInterval) {
+      Serial.print("capped throttle: ");
+      Serial.print(cappedThrottle);
+      Serial.print(", ledIsArmedBlinkInterval: ");
+      Serial.println(ledIsArmedBlinkInterval);
+
+      ledIsArmedMillisCounter = 0;
+      ledBlinkingAnimationFrame(red_hue);
+    }
+  }
+}
+
+inline void ledMaximumAnimation() {
+  if (isArmed) {
+    ledIsArmedAnimation();
+  } else {
+    ledBreathingAnimation(LED_IDLE_BREATHING_COLOR_HUE);
+  }
+}
+
+inline void ledMinimumAnimation() {
+  ledRainbowSlowAnimation();
 }
 
 inline void ledOtaWifiWaitForWifiAnimation() {
   // quick blue blinking
-  EVERY_N_MILLISECONDS(100) {
-    if (brightness == 0) {
-      brightness = 255;
-    } else {
-      brightness = 0;
-    }
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CHSV(170, 255, brightness);
-    }
-
-    FastLED.show();
-  }
+  uint8_t blue_hue = 170;
+  uint8_t blinkInterval = 100;
+  ledBlinkingAnimation(blue_hue, blinkInterval);
 }
 
 inline void ledOtaWifiConnectedAnimation() {
   // blue
   int hue = 170;
-  int saturation = 255;
 
   if (isInHotspotMode) {
     // make led pink
     hue = 200;
   }
 
-  // quick breathing
-  EVERY_N_MILLISECONDS(2) {
-    if (isIncreasing) {
-      if (brightness < 255) {
-        brightness++;
-      } else {
-        isIncreasing = false;
-      }
-    } else {
-      if (brightness > 0) {
-        brightness--;
-      } else {
-        isIncreasing = true;
-      }
-    }
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-      leds[i] = CHSV(hue, saturation, brightness);
-    }
-
-    FastLED.show();
-  }
+  ledBreathingAnimation(hue);
 }
 
+static bool ledWasOn = true;
 inline void ledLoop() {
   if (otaIsActive && wifiEnabled) {
     if (wifiConnected) {
@@ -269,12 +308,26 @@ inline void ledLoop() {
     return;
   }
 
-  if (isArmed) {
-    ledIsArmedAnimation();
+  if (ledSwitch == LED_SWITCH_STATE_LOW) {
+    if (ledWasOn) { 
+      // led off
+      for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i] = CRGB::Black;
+      }
+      FastLED.show();
+      ledWasOn = false;
+    }
+    return;
+  } else {
+    ledWasOn = true;
+  }
+
+  if (ledSwitch == LED_SWITCH_STATE_HIGH) {
+    ledMaximumAnimation();
     return;
   }
 
-  ledIdleAnimation();
+  ledMinimumAnimation();
 }
 
 inline void otaLoop() {
@@ -286,6 +339,8 @@ inline void otaLoop() {
       wifiConnected = false;
       wifiConnectAttempts = 0;
       isInHotspotMode = false;
+      wifiConnectionStartTime = 0;
+      otaUploadInProgress = false;
     }
     return;
   }
@@ -311,6 +366,7 @@ inline void otaLoop() {
     WiFi.softAP(WIFI_HOTSPOT_SSID, WIFI_HOTSPOT_PASSWORD);
     isInHotspotMode = true;
     wifiConnected = true;
+    wifiConnectionStartTime = millis();
     
     Serial.print("IP address: ");
     if (wifiConnectAttempts > WIFI_MAX_CONNECT_ATTEMPTS) {
@@ -319,6 +375,12 @@ inline void otaLoop() {
       Serial.println(WiFi.localIP());
     }
 
+    return;
+  }
+
+  bool timeoutReached = (millis() - wifiConnectionStartTime) > WIFI_HOTSPOT_TIMEOUT;
+  if (!otaUploadInProgress && timeoutReached) {
+    otaIsActive = false;
     return;
   }
 
@@ -331,7 +393,9 @@ inline void otaLoop() {
   }
 
   if (wifiConnected) {
-    ArduinoOTA.handle();
+    EVERY_N_MILLISECONDS(200) {
+      ArduinoOTA.handle();
+    }
   }
 }
 
