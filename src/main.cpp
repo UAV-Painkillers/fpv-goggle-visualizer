@@ -1,14 +1,20 @@
 #include <CrsfSerial.h>
 #include <Arduino.h>
 #include <SoftwareSerial.h>
-#include <FastLED.h>
 #include <ArduinoOTA.h>
 #include "const.h"
+#include "animation.hpp"
+#include "animations/running-blue-dot-animation.hpp"
+#include "animations/rainbow-animation.hpp"
+#include "animations/single-color-breathing-animation.hpp"
+#include "animations/progress-bar-animation.hpp"
+#include "animations/blink-animation.hpp"
+#include <arduino-timer.h>
 
+auto timer = timer_create_default();
 EspSoftwareSerial::UART rxSerial;
-
 CrsfSerial crsf(rxSerial, RX_BAUD);
-CRGBArray<NUM_LEDS> leds;
+AnimationController animationController;
 
 enum LedSwitchState {
   LED_SWITCH_STATE_LOW,
@@ -23,7 +29,8 @@ static int pitch = CHANNEL_LOW_MAX;
 static int yaw = CHANNEL_LOW_MAX;
 static LedSwitchState ledSwitch = LED_SWITCH_STATE_LOW;
 static bool otaIsActive = false;
-
+static bool bootAnimationDidRun = false;
+static int lasLedBrightness = LED_BRIGHTNESS;
 
 static bool wifiEnabled = false;
 static int wifiConnectAttempts = 0;
@@ -37,6 +44,8 @@ IPAddress wifi_hotspot_local_IP(10, 0, 0, 1);
 IPAddress wifi_hotspot_gateway(10, 0, 0, 2);
 IPAddress wifi_hotspot_subnet(255, 0, 0, 0);
 
+ProgressBarAnimation otaUploadProgressAnimation(CRGB::Green, CRGB::Black);
+
 void onChannelChanged()
 {
   roll = crsf.getChannel(ROLL_CHANNEL);
@@ -45,6 +54,20 @@ void onChannelChanged()
   yaw = crsf.getChannel(YAW_CHANNEL);
   isArmed = crsf.getChannel(ARM_CHANNEL) == SWITCH_HIGH;
   int ledSwitchValue = crsf.getChannel(LED_CONTROL_CHANNEL);
+  
+  int ledBrightness = LED_BRIGHTNESS;
+  #ifdef LED_BRIGHTNESS_CHANNEL
+  int ledBrightnessChannelValue = crsf.getChannel(LED_BRIGHTNESS_CHANNEL);
+  if (LED_BRIGHTNESS_CHANNEL_INVERTED) {
+    ledBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 50, 255);
+  } else {
+    ledBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 255, 50);
+  }
+  #endif
+  if (ledBrightness != lasLedBrightness) {
+    animationController.setBrightness(ledBrightness);
+    lasLedBrightness = ledBrightness;
+  }
 
   if (ledSwitchValue == SWITCH_HIGH) {
     ledSwitch = LED_SWITCH_STATE_HIGH;
@@ -64,9 +87,6 @@ void onChannelChanged()
     roll >= CHANNEL_HIGH_MIN &&
     pitch >= CHANNEL_HIGH_MIN
   ) {
-    if (!otaIsActive) {
-      Serial.println("OTA activated");
-    }
     otaIsActive = true;
   }
 
@@ -80,9 +100,6 @@ void onChannelChanged()
     roll <= CHANNEL_LOW_MAX &&
     pitch <= CHANNEL_LOW_MAX
   ) {
-    if (otaIsActive) {
-      Serial.println("OTA deactivated");
-    }
     otaIsActive = false;
   }
 }
@@ -95,34 +112,6 @@ inline void setupRX() {
   Serial.println("done");
 }
 
-inline void setupLED() {
-  Serial.print("Setup LED...");
-  FastLED.addLeds<WS2811, LED_PIN, GRB>(leds, NUM_LEDS)
-    .setCorrection(TypicalLEDStrip);
-
-  // all leds Black
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Black;
-    FastLED.show();
-  }
-
-  // move blue led from left to right and back
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = CRGB::Blue;
-    FastLED.show();
-    leds[i] = CRGB::Black;
-    delay(50);
-  }
-  for (int i = NUM_LEDS - 1; i >= 0; i--) {
-    leds[i] = CRGB::Blue;
-    FastLED.show();
-    leds[i] = CRGB::Black;
-    delay(50);
-  }
-
-  Serial.println("done");
-}
-
 inline void setupArduinoOTA() {
   Serial.print("Setup OTA...");
 
@@ -131,19 +120,20 @@ inline void setupArduinoOTA() {
 
   ArduinoOTA.onStart([]() {
     Serial.println("OTA Upload started");
-    otaUploadInProgress = true;
   });
 
   ArduinoOTA.onEnd([]() {
     Serial.println("\nOTA Upload finished");
-    otaUploadInProgress = false;
 
     // reboot
     ESP.restart();
   });
 
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    uint8_t progressInPercent = (progress / (total / 100));
+    otaUploadInProgress = true;
+    // TODO: why is it 100% green all the time??
+    otaUploadProgressAnimation.setProgress(progressInPercent);
   });
 
   ArduinoOTA.onError([](ota_error_t error) {
@@ -159,6 +149,7 @@ inline void setupArduinoOTA() {
   Serial.println("done");
 }
 
+int lastProgress = 0;
 void setup()
 {
   Serial.begin(115200);
@@ -166,11 +157,19 @@ void setup()
 
   setupArduinoOTA();
   setupRX();
-  setupLED();
+  animationController.begin();
+  animationController.setAnimation(new RunningBlueDotAnimation(BOOT_ANIMATION_DURATION_MS, CRGB::Blue, CRGB::Black));
+
+  timer.in(BOOT_ANIMATION_DURATION_MS, [](void *) -> bool {
+    Serial.println("Boot animation done");
+    bootAnimationDidRun = true;
+    return false;
+  });
 
   Serial.println("setup() done, starting loop()");
 }
 
+/*
 static uint8_t rainbow_hue = 0;
 inline void ledRainbowSlowKeyframe() {
   rainbow_hue++;
@@ -300,8 +299,15 @@ inline void ledOtaWifiConnectedAnimation() {
   ledBreathingAnimation(hue);
 }
 
-static bool ledWasOn = true;
+
+static bool ledAnimationIsActive = true;
+static bool startupAnimationDidRun = false;
 inline void ledLoop() {
+  if (!startupAnimationDidRun) {
+    ledStartupAnimation();
+    return;
+  }
+
   if (otaIsActive && wifiEnabled) {
     if (wifiConnected) {
       ledOtaWifiConnectedAnimation();
@@ -312,17 +318,17 @@ inline void ledLoop() {
   }
 
   if (ledSwitch == LED_SWITCH_STATE_LOW) {
-    if (ledWasOn) { 
+    if (ledAnimationIsActive) { 
       // led off
       for (int i = 0; i < NUM_LEDS; i++) {
         leds[i] = CRGB::Black;
       }
       FastLED.show();
-      ledWasOn = false;
+      ledAnimationIsActive = false;
     }
     return;
   } else {
-    ledWasOn = true;
+    ledAnimationIsActive = true;
   }
 
   if (ledSwitch == LED_SWITCH_STATE_HIGH) {
@@ -332,6 +338,7 @@ inline void ledLoop() {
 
   ledMinimumAnimation();
 }
+*/
 
 inline void otaEnableWifi() {
   Serial.println("OTA enabled, enabling wifi");
@@ -430,9 +437,125 @@ inline void otaLoop() {
   }
 }
 
+enum AnimationState {
+  ANIMATION_STATE_BOOTING,
+  ANIMATION_STATE_OTA_WAIT_FOR_WIFI,
+  ANIMATION_STATE_OTA_WIFI_READY,
+  ANIMATION_STATE_OTA_HOTSPOT_READY,
+  ANIMATION_STATE_OTA_UPLOAD_IN_PROGRESS,
+  ANIMATION_STATE_LED_OFF,
+  ANIMATION_STATE_LED_MINIMAL,
+  ANIMATION_STATE_LED_MAXIMUM_ARMED,
+  ANIMATION_STATE_LED_MAXIMUM_DISARMED,
+};
+
+static AnimationState animationState = ANIMATION_STATE_BOOTING;
+
+inline void animationLoop() {
+  if (!bootAnimationDidRun) {
+    // prevent animation change
+    return;
+  }
+
+  if (otaUploadInProgress) {
+    if (animationState == ANIMATION_STATE_OTA_UPLOAD_IN_PROGRESS) {
+      return;
+    }
+    Serial.println("OTA UPLOAD IN PROGRESS animation started");
+    animationState = ANIMATION_STATE_OTA_UPLOAD_IN_PROGRESS;
+
+    animationController.setAnimation(&otaUploadProgressAnimation);
+    return;
+  }
+
+
+  // OTA active
+  if (otaIsActive) {
+    if (isInHotspotMode) {
+      if (animationState == ANIMATION_STATE_OTA_HOTSPOT_READY) {
+        return;
+      }
+      Serial.println("OTA HOTSPOT READY animation started");
+      animationState = ANIMATION_STATE_OTA_HOTSPOT_READY;
+
+      animationController.setAnimation(new BlinkAnimation(CRGB::Purple, CRGB::Green, 1000));
+      return;
+    }
+
+    if (wifiConnected) {
+      if (animationState == ANIMATION_STATE_OTA_WIFI_READY) {
+        return;
+      }
+      Serial.println("OTA WIFI READY animation started");
+      animationState = ANIMATION_STATE_OTA_WIFI_READY;
+
+      animationController.setAnimation(new BlinkAnimation(CRGB::Blue, CRGB::Green, 1000));
+      return;
+    }
+
+    // waiting for wifi
+    if (animationState == ANIMATION_STATE_OTA_WAIT_FOR_WIFI) {
+      return;
+    }
+    Serial.println("OTA WAIT FOR WIFI animation started");
+    animationState = ANIMATION_STATE_OTA_WAIT_FOR_WIFI;
+
+    animationController.setAnimation(new BlinkAnimation(CRGB::Blue, CRGB::Black, 100));
+
+    return;
+  }
+
+  // LED OFF
+  if (ledSwitch == LedSwitchState::LED_SWITCH_STATE_LOW) {
+    if (animationState == ANIMATION_STATE_LED_OFF) {
+      return;
+    }
+    Serial.println("LED OFF animation started");
+    animationState = ANIMATION_STATE_LED_OFF;
+
+    animationController.clear();
+    return;
+  }
+
+  // LED Minimal
+  if (ledSwitch == LedSwitchState::LED_SWITCH_STATE_CENTER) {
+    if (animationState == ANIMATION_STATE_LED_MINIMAL) {
+      return;
+    }
+    Serial.println("LED MINIMAL animation started");
+    animationState = ANIMATION_STATE_LED_MINIMAL;
+
+    CHSV pink = CHSV(224, 255, 255);
+    animationController.setAnimation(new SingleColorBreathingAnimation(pink, 50, 4000));
+    return;
+  }
+
+  // LED Maximum
+  // + armed
+  if (isArmed) {
+    if (animationState == ANIMATION_STATE_LED_MAXIMUM_ARMED) {
+      return;
+    }
+    Serial.println("LED MAXIMUM ARMED animation started");
+    animationState = ANIMATION_STATE_LED_MAXIMUM_ARMED;
+    // TODO: decide on animation
+  }
+
+  // + disarmed
+  if (animationState == ANIMATION_STATE_LED_MAXIMUM_DISARMED) {
+    return;
+  }
+  Serial.println("LED MAXIMUM DISARMED animation started");
+  animationState = ANIMATION_STATE_LED_MAXIMUM_DISARMED;
+  animationController.setAnimation(new RunningBlueDotAnimation(2000, CRGB::Red, CRGB::Blue));
+}
+
 void loop()
 {
-    crsf.loop();
-    ledLoop();
-    otaLoop();
+  animationController.tick();
+  timer.tick();
+  
+  crsf.loop();
+  otaLoop();
+  animationLoop();
 }

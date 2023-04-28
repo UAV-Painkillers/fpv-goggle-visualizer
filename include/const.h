@@ -24,7 +24,12 @@
 #define NUM_LEDS 9
 #define LED_PIN D4
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
-#define LED_IDLE_BREATHING_COLOR_HUE 96
+#define BOOT_ANIMATION_DURATION_MS 1000
+#define LED_BRIGHTNESS 255
+// comment out if you want to use a fixed brightness value from LED_BRIGHTNESS (above)
+#define LED_BRIGHTNESS_CHANNEL 9
+#define LED_BRIGHTNESS_CHANNEL_INVERTED true
+#define LED_FPS 60
 
 // WiFi OTA --------------------------------------
 
@@ -35,6 +40,6 @@
 // how many times shall we try to connect to the wifi before we create a hotspot? (each attempt is 200ms)
 #define WIFI_MAX_CONNECT_ATTEMPTS 300 // 300 * 200ms = 1 minute
 #define WIFI_HOTSPOT_SSID "CRSF Visualizer"
-#define WIFI_HOTSPOT_PASSWORD "jappy is awesome"
+#define WIFI_HOTSPOT_PASSWORD "blinkyblink"
 // wifi will automatically shut down after 3 minutes of waiting for OTA connections
 #define WIFI_HOTSPOT_TIMEOUT 180000 // 3 minutes in ms (3 * 60 * 1000)
