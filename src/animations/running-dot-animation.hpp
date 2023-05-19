@@ -1,8 +1,11 @@
-#include "../animation.hpp"
+#pragma once
 
-class RunningBlueDotAnimation: public AnimationBase {
+#include "animation-base.hpp"
+#include "const.h"
+
+class RunningDotAnimation: public AnimationBase {
     public:
-        RunningBlueDotAnimation(uint32_t totalDurationMs, CRGB dotColor, CRGB backgroundColor): AnimationBase() {
+        RunningDotAnimation(uint32_t totalDurationMs, CRGB dotColor, CRGB backgroundColor): AnimationBase() {
             this->stepDuration = totalDurationMs / (NUM_LEDS * 2);
             this->dotColor = dotColor;
             this->backgroundColor = backgroundColor;

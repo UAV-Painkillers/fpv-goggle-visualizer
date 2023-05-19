@@ -1,30 +1,37 @@
 #pragma once
 
+#include <FastLED.h>
+
 // RX Communication -------------------------------
-#define RX_SERIAL_RX_PIN D7
-#define RX_SERIAL_TX_PIN D8
+#define RX_SERIAL_RX_PIN 19
+#define RX_SERIAL_TX_PIN 18
 // software serial on esp8266 is limited to 57600 baud for stable communication
 #define RX_BAUD 57600
+
+// LOGGING ---------------------------------------
+// #define USE_SOFTWARE_SERIAL_FOR_LOGGING
+#define LOGGING_SERIAL_TX_PIN 2
+#define LOGGING_SERIAL_RX_PIN 10
+#define LOGGING_BAUD 57600
 
 // Channel Values --------------------------------
 #define CHANNEL_HIGH_MIN 1999
 #define CHANNEL_LOW_MAX 1001
-#define SWITCH_HIGH 2000
-#define SWITCH_LOW 1000
 
 // Channel mapping -------------------------------
 #define ARM_CHANNEL 5
-#define LED_CONTROL_CHANNEL 7
+#define LED_CONTROL_CHANNEL 10
 #define THROTTLE_CHANNEL 3
 #define ROLL_CHANNEL 1
 #define PITCH_CHANNEL 2
 #define YAW_CHANNEL 4
 
 // LED -------------------------------------------
-#define NUM_LEDS 9
-#define LED_PIN D4
+#define NUM_LEDS 20
+#define LED_PIN 21
+#define LED_TYPE WS2812
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
-#define BOOT_ANIMATION_DURATION_MS 1000
+#define BOOT_ANIMATION_DURATION_MS 3000
 #define LED_BRIGHTNESS 255
 // comment out if you want to use a fixed brightness value from LED_BRIGHTNESS (above)
 #define LED_BRIGHTNESS_CHANNEL 9

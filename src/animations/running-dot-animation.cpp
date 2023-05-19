@@ -1,6 +1,6 @@
-#include "running-blue-dot-animation.hpp"
+#include "running-dot-animation.hpp"
 
-void RunningBlueDotAnimation::tick() {
+void RunningDotAnimation::tick() {
     EVERY_N_MILLISECONDS(this->stepDuration) {
         for(int i = 0; i < NUM_LEDS; i++) {
             this->setLed(i, this->backgroundColor);

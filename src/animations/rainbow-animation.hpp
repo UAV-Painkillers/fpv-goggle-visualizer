@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../animation.hpp"
+#include "animation-base.hpp"
+#include "const.h"
 
 class RainbowAnimation : public AnimationBase {
     public:
