@@ -30,15 +30,6 @@ void RX::onChannelChanged() {
     isArmed = crsf.getChannel(ARM_CHANNEL) >= CHANNEL_HIGH_MIN;
     ledSwitchIsOn = crsf.getChannel(LED_CONTROL_CHANNEL) >= CHANNEL_HIGH_MIN;
 
-    Logger::log("RX::onChannelChanged() - ");
-    Logger::log("isArmed: " + String(isArmed ? "true" : "false") + ", ");
-    Logger::log("ledSwitchIsOn: " + String(ledSwitchIsOn ? "true" : "false") + ", ");
-    Logger::log("otaIsActive: " + String(otaIsActive ? "true" : "false"));
-    Logger::log("throttle: " + String(throttle) + ", ");
-    Logger::log("roll: " + String(roll) + ", ");
-    Logger::log("pitch: " + String(pitch) + ", ");
-    Logger::logLn("yaw: " + String(yaw));
-
     int nextLedBrightness = LED_BRIGHTNESS;
     #ifdef LED_BRIGHTNESS_CHANNEL
         int ledBrightnessChannelValue = crsf.getChannel(LED_BRIGHTNESS_CHANNEL);

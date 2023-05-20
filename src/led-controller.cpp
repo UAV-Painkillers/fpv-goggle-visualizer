@@ -4,8 +4,10 @@
 
 void LedController::begin() {
     Logger::logLn("Setup LED...");
-    FastLED.addLeds<LED_TYPE, LED_PIN, GRB>(this->leds, NUM_LEDS)
+    FastLED.addLeds<LED_TYPE, LED_PIN, LED_COLOR_ORDER>(this->leds, NUM_LEDS)
         .setCorrection(TypicalLEDStrip);
+        
+    FastLED.setMaxPowerInVoltsAndMilliamps(LED_VOLTS, LED_MAX_MILLIAMPS);
 
     clear();
 
@@ -20,7 +22,13 @@ void LedController::setAnimation(AnimationBase* animation, bool clear) {
     this->currentAnimation = animation;
     this->currentAnimation->begin(
         [this](int index, CRGB color) {
-            this->leds[index] = color;
+            this->leds[NUM_LEDS - 1 - index] = color;
+        },
+        [this](int index) {
+            return this->leds[NUM_LEDS - 1 - index];
+        },
+        [this](int fadeAmount) {
+            fadeToBlackBy(this->leds, NUM_LEDS, fadeAmount);
         }
     );
 };

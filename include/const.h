@@ -27,16 +27,19 @@
 #define YAW_CHANNEL 4
 
 // LED -------------------------------------------
-#define NUM_LEDS 20
-#define LED_PIN 21
+#define NUM_LEDS 28
+#define LED_PIN 4
+#define LED_VOLTS 5
+#define LED_MAX_MILLIAMPS 500
 #define LED_TYPE WS2812
+#define LED_COLOR_ORDER GRB
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
 #define BOOT_ANIMATION_DURATION_MS 3000
 #define LED_BRIGHTNESS 255
 // comment out if you want to use a fixed brightness value from LED_BRIGHTNESS (above)
 #define LED_BRIGHTNESS_CHANNEL 9
 #define LED_BRIGHTNESS_CHANNEL_INVERTED true
-#define LED_FPS 60
+#define LED_FPS 120
 
 // WiFi OTA --------------------------------------
 

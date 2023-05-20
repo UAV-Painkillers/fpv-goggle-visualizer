@@ -3,8 +3,9 @@
 #include <bluefairy.h>
 
 #include "../basic.state.hpp"
-#include "../../animations/rainbow-animation.hpp"
+#include "../../animations/blink-animation.hpp"
 #include "../../animations/single-color-breathing-animation.hpp"
+#include "../../animations/stick-reactive-animation.hpp"
 #include "const.h"
 
 enum AnimationType {
@@ -24,15 +25,16 @@ class AnimateState: public BasicState {
             scheduler,
             ledController
         ),
+        // _armedAnimation(CRGB::Blue, CRGB::Red, 200),
         _armedAnimation(),
-        _disarmedAnimation(CHSV(0, 255, 255), 50, 3000)
+        _disarmedAnimation(CHSV(0, 255, 255), 50, 200)
         {};
 
         void enter();
         void leave();
     
     private:
-        RainbowAnimation _armedAnimation;
+        StickReactiveAnimation _armedAnimation;
         SingleColorBreathingAnimation _disarmedAnimation;
         bluefairy::TaskNode *_updateTask;
         AnimationType _activeAnimation;

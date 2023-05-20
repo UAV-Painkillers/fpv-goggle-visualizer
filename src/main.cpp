@@ -31,6 +31,7 @@ inline void ledTaskHandlerSetup() {
       frameDuration,
       []() {
           ledController.tick();
+          ledController.setBrightness(RX::ledBrightness);
       }
   );
 

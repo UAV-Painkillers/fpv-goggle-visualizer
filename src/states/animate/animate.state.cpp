@@ -13,8 +13,6 @@ void AnimateState::enter() {
 }
 
 void AnimateState::updateAnimation() {
-    _ledController->setBrightness(RX::ledBrightness);
-
     if (RX::otaIsActive) {
         Logger::logLn("AnimateState::updateAnimation() - going to AppState::APP_STATE_OTA");
         _stateMachine->toState(AppState::APP_STATE_OTA);
