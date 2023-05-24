@@ -21,12 +21,12 @@ BootingState bootingState(&stateMachine, &logicScheduler, &ledController);
 AnimateState animateState(&stateMachine, &logicScheduler, &ledController);
 
 inline void ledTaskHandlerSetup() {
-  Logger::logLn("ledTaskHandlerSetup() - starting");
+  Logger::getInstance().logLn("ledTaskHandlerSetup() - starting");
   int frameDuration = 1000 / LED_FPS;
 
   ledController.begin();
 
-  Logger::logLn("ledTaskHandlerSetup() - scheduling ledController.tick() every " + String(frameDuration) + "ms");
+  Logger::getInstance().logLn("ledTaskHandlerSetup() - scheduling ledController.tick() every " + String(frameDuration) + "ms");
   ledScheduler.every(
       frameDuration,
       []() {
@@ -35,7 +35,7 @@ inline void ledTaskHandlerSetup() {
       }
   );
 
-  Logger::logLn("ledTaskHandlerSetup() - done");
+  Logger::getInstance().logLn("ledTaskHandlerSetup() - done");
 }
 
 inline void ledTaskHandlerLoop() {
@@ -43,15 +43,15 @@ inline void ledTaskHandlerLoop() {
 }
 
 inline void setupStateMachine() {
-  Logger::logLn("logicTaskHandlerSetup() - preparing state machine");
+  Logger::getInstance().logLn("logicTaskHandlerSetup() - preparing state machine");
   stateMachine[AppState::APP_STATE_BOOTING] = bootingState;
   stateMachine[AppState::APP_STATE_OTA] = otaState;
   stateMachine[AppState::APP_STATE_ANIMATE] = animateState;
 
-  Logger::logLn("logicTaskHandlerSetup() - starting state machine");
+  Logger::getInstance().logLn("logicTaskHandlerSetup() - starting state machine");
   stateMachine.toState(AppState::APP_STATE_BOOTING);
 
-  Logger::logLn("logicTaskHandlerSetup() - done");
+  Logger::getInstance().logLn("logicTaskHandlerSetup() - done");
 }
 
 #ifdef ESP32
@@ -68,15 +68,15 @@ inline void setupStateMachine() {
 
 void setup()
 {
-  Logger::begin();
-  Logger::logLn("Welcome to CRSF Visualizer");
+  Logger::getInstance().begin();
+  Logger::getInstance().logLn("Welcome to CRSF Visualizer");
 
   setupStateMachine();
   RX::begin();
   logicScheduler.every(1, []() { RX::loop(); });
 
   #ifdef ESP32
-    Logger::logLn("ESP32 detected, starting led task");
+    Logger::getInstance().logLn("ESP32 detected, starting led task");
     xTaskCreatePinnedToCore(
         LedTaskHandler,
         "LED",
@@ -87,11 +87,11 @@ void setup()
         0
     );
   #else
-    Logger::logLn("ESP32 not detected, running setup() in main thread");
+    Logger::getInstance().logLn("ESP32 not detected, running setup() in main thread");
     ledTaskHandlerSetup();
   #endif
 
-  Logger::logLn("setup() done, starting loop()");
+  Logger::getInstance().logLn("setup() done, starting loop()");
 }
 
 void loop() {

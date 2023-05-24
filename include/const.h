@@ -3,8 +3,8 @@
 #include <FastLED.h>
 
 // RX Communication -------------------------------
-#define RX_SERIAL_RX_PIN 19
-#define RX_SERIAL_TX_PIN 18
+#define RX_SERIAL_RX_PIN 36
+#define RX_SERIAL_TX_PIN 35
 // software serial on esp8266 is limited to 57600 baud for stable communication
 #define RX_BAUD 57600
 
@@ -13,6 +13,10 @@
 #define LOGGING_SERIAL_TX_PIN 2
 #define LOGGING_SERIAL_RX_PIN 10
 #define LOGGING_BAUD 57600
+
+#define LOGGING_BLE_SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" 
+#define LOGGING_BLE_CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+#define LOGGING_BLE_CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
 // Channel Values --------------------------------
 #define CHANNEL_HIGH_MIN 1999
@@ -28,14 +32,16 @@
 
 // LED -------------------------------------------
 #define NUM_LEDS 28
-#define LED_PIN 4
+#define LED_PIN 16
 #define LED_VOLTS 5
 #define LED_MAX_MILLIAMPS 500
 #define LED_TYPE WS2812
 #define LED_COLOR_ORDER GRB
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
 #define BOOT_ANIMATION_DURATION_MS 3000
-#define LED_BRIGHTNESS 255
+// #define LED_BRIGHTNESS 255 // sets the brightness to a constant value if you dont want to use a channel
+#define LED_MIN_DIMMED_BRIGHTNESS 70 // off is still 0, this is only for "dimmed" effects
+#define LED_MAX_BRIGHTNESS 255
 // comment out if you want to use a fixed brightness value from LED_BRIGHTNESS (above)
 #define LED_BRIGHTNESS_CHANNEL 9
 #define LED_BRIGHTNESS_CHANNEL_INVERTED true

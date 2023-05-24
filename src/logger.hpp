@@ -9,9 +9,20 @@
     static EspSoftwareSerial::UART loggingSoftSerial;
 #endif
 
-class Logger {
+class Logger  {
     public:
-        static void begin();
-        static void log(String msg);
-        static void logLn(String msg);
+        static Logger& getInstance() {
+          static Logger instance;
+          return instance;
+        };
+
+    private:
+        Logger() {};
+        Logger(Logger const&);
+        void operator=(Logger const&);
+
+    public:
+        void begin();
+        void log(String msg);
+        void logLn(String msg);
 };

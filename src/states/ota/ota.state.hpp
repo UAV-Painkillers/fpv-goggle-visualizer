@@ -10,6 +10,9 @@
 
 #include "../basic.state.hpp"
 #include "const.h"
+#include "../../animations/progress-bar-animation.hpp"
+#include "../../animations/blink-animation.hpp"
+#include "../../rx.hpp"
 
 class OTAState: public BasicState {
     public:
@@ -17,11 +20,17 @@ class OTAState: public BasicState {
             AppStateMachine *stateMachine,
             bluefairy::Scheduler *scheduler,
             LedController *ledController
-        ): BasicState(
-            stateMachine,
-            scheduler,
-            ledController
-        ) {};
+        ):
+            BasicState(
+                stateMachine,
+                scheduler,
+                ledController
+            ),
+            _waitForWifiAnimation(CRGB::Blue, CRGB::Black, 250),
+            _wifiReadyAnimation(CRGB::Blue, CRGB::Black, 500),
+            _hotspotReadyAnimation(CRGB(255, 0, 255), CRGB::Black, 500),
+            _otaUploadAnimation(CRGB::Green, CRGB::Black)
+        {};
 
         void enter();
         void leave();
@@ -34,6 +43,11 @@ class OTAState: public BasicState {
         bool otaUploadInProgress = false;
         bool otaLibraryEnabled = false;
         bluefairy::TaskNode *_otaTask;
+        BlinkAnimation _waitForWifiAnimation;
+        BlinkAnimation _wifiReadyAnimation;
+        BlinkAnimation _hotspotReadyAnimation;
+        ProgressBarAnimation _otaUploadAnimation;
+
 
         void enableWifi();
         void waitForWifiConnection();

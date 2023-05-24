@@ -6,7 +6,7 @@ void Logger::begin() {
     #else
         Serial.begin(LOGGING_BAUD);
     #endif
-}
+};
 
 void Logger::log(String msg) {
     #ifdef USE_SOFTWARE_SERIAL_FOR_LOGGING
@@ -14,7 +14,7 @@ void Logger::log(String msg) {
     #else
         Serial.print(msg);
     #endif
-}
+};
 
 void Logger::logLn(String msg) {
     #ifdef USE_SOFTWARE_SERIAL_FOR_LOGGING
@@ -22,4 +22,4 @@ void Logger::logLn(String msg) {
     #else
         Serial.println(msg);
     #endif
-}
+};

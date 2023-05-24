@@ -11,15 +11,29 @@ void RunningDotAnimation::tick() {
             if (this->currentLedIndex >= NUM_LEDS) {
                 this->currentLedIndex = NUM_LEDS -2;
                 this->reverse = true;
+                cycles++;
             }
         } else {
             this->currentLedIndex--;
             if (this->currentLedIndex < 0) {
                 this->currentLedIndex = 1;
                 this->reverse = false;
+                cycles++;
             }
+        }
+
+        if (this->cycles >= this->maxCycles && this->maxCycles != -1) {
+            if (!this->completed) {
+                this->completed = true;
+                this->completedCallback();
+            }
+            return;
         }
 
         this->setLed(this->currentLedIndex, this->dotColor);
     }
+}
+
+void RunningDotAnimation::onCompleted(CompletedCallback callback) {
+    this->completedCallback = callback;
 }

@@ -16,7 +16,7 @@ class BootingState: public BasicState {
             stateMachine,
             scheduler,
             ledController
-        ), _animation(BOOT_ANIMATION_DURATION_MS, CRGB::Red, CRGB::Black) {};
+        ), _animation(BOOT_ANIMATION_DURATION_MS / 2, CRGB::Red, CRGB::Black, 2) {};
 
         void enter();
         void leave();

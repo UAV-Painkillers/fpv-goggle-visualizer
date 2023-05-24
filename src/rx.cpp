@@ -11,11 +11,11 @@ int RX::ledBrightness = 255;
 bool RX::otaIsActive = false;
 
 void RX::begin() {
-    Logger::logLn("Setup RX...");
+    Logger::getInstance().logLn("Setup RX...");
     rxSerial.begin(RX_BAUD, EspSoftwareSerial::SWSERIAL_8N1, RX_SERIAL_RX_PIN, RX_SERIAL_TX_PIN);
 
     crsf.onPacketChannels = &RX::onChannelChanged;
-    Logger::logLn("done");   
+    Logger::getInstance().logLn("done");   
 }
 
 void RX::loop() {
@@ -30,15 +30,21 @@ void RX::onChannelChanged() {
     isArmed = crsf.getChannel(ARM_CHANNEL) >= CHANNEL_HIGH_MIN;
     ledSwitchIsOn = crsf.getChannel(LED_CONTROL_CHANNEL) >= CHANNEL_HIGH_MIN;
 
-    int nextLedBrightness = LED_BRIGHTNESS;
+    int nextLedBrightness = 255;
+
+    #ifdef LED_BRIGHTNESS
+        nextLedBrightness = LED_BRIGHTNESS;
+    #endif
+
     #ifdef LED_BRIGHTNESS_CHANNEL
         int ledBrightnessChannelValue = crsf.getChannel(LED_BRIGHTNESS_CHANNEL);
-    if (LED_BRIGHTNESS_CHANNEL_INVERTED) {
-        nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 10, 255);
-    } else {
-        nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 255, 10);
-    }
+        if (LED_BRIGHTNESS_CHANNEL_INVERTED) {
+            nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 10, 255);
+        } else {
+            nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 255, 10);
+        }
     #endif
+
     if (nextLedBrightness != ledBrightness) {
         ledBrightness = nextLedBrightness;
     }

@@ -2,7 +2,7 @@
 
 #include <bluefairy.h>
 
-#include "app-state.hpp"
+#include "../app-state.hpp"
 #include "../led-controller.hpp"
 
 class BasicState: public bluefairy::State {

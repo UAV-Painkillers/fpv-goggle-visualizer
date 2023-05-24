@@ -2,16 +2,25 @@
 #include "../../logger.hpp"
 
 static const IPAddress wifi_hotspot_local_IP(10, 0, 0, 1);
-static const IPAddress wifi_hotspot_gateway(10, 0, 0, 2);
-static const IPAddress wifi_hotspot_subnet(255, 0, 0, 0);
+static const IPAddress wifi_hotspot_gateway(10, 0, 0, 1);
+static const IPAddress wifi_hotspot_subnet(255, 255, 255, 0);
 
 void OTAState::waitForWifiConnection() {
-    if (WiFi.isConnected() != WL_CONNECTED) {
-        wifiConnectAttempts++;
+    if (WiFi.isConnected() == WL_CONNECTED) {
+        Logger::getInstance().logLn("wifi connected");
+        Logger::getInstance().log("IP address: ");
+        Logger::getInstance().logLn(WiFi.localIP().toString());
+        wifiConnected = true;
+        _ledController->setAnimation(&_wifiReadyAnimation);
+
+        enableOTALibrary();
+        return;
     }
 
+    wifiConnectAttempts++;
+
     if (wifiConnectAttempts > WIFI_MAX_CONNECT_ATTEMPTS) {
-        Logger::logLn("wifi connection failed, starting hotspot");
+        Logger::getInstance().logLn("wifi connection failed, starting hotspot");
         startHotspot();
         return;
     }
@@ -22,35 +31,35 @@ void OTAState::waitForWifiConnection() {
 }
 
 void OTAState::enableWifi() {
-    Logger::logLn("OTA enabled, enabling wifi");
+    Logger::getInstance().logLn("OTA enabled, enabling wifi");
     wifiEnabled = true;
     #ifdef WIFI_SSID
-        Logger::logLn("connecting to wifi");
+        Logger::getInstance().logLn("connecting to wifi");
+        this->_ledController->setAnimation(&_waitForWifiAnimation);
         WiFi.mode(WIFI_STA);
         WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         wifiConnected = false;
         waitForWifiConnection();
     #else
         // trigger start of AP directly
-        Logger::logLn("skip wifi connection as no credentials are set and start hotspot directly");
+        Logger::getInstance().logLn("skip wifi connection as no credentials are set and start hotspot directly");
         startHotspot();
     #endif
 }
 
 void OTAState::startHotspot() {
-    Logger::logLn("starting Hotspot");
+    Logger::getInstance().logLn("starting Hotspot");
     WiFi.mode(WIFI_AP);
-    WiFi.softAPConfig(wifi_hotspot_local_IP, wifi_hotspot_gateway, wifi_hotspot_subnet);
+    WiFi.softAPConfig(wifi_hotspot_local_IP, wifi_hotspot_gateway,wifi_hotspot_subnet);
     WiFi.softAP(WIFI_HOTSPOT_SSID, WIFI_HOTSPOT_PASSWORD);
     isInHotspotMode = true;
     wifiConnected = true;
 
-    Logger::log("IP address: ");
-    if (wifiConnectAttempts > WIFI_MAX_CONNECT_ATTEMPTS) {
-        Logger::logLn(WiFi.softAPIP().toString());
-    } else {
-        Logger::logLn(WiFi.localIP().toString());
-    }
+    Logger::getInstance().log("IP address: ");
+    Logger::getInstance().logLn(WiFi.softAPIP().toString());
+
+    _ledController->setAnimation(&_hotspotReadyAnimation);
+    enableOTALibrary();
 }
 
 void OTAState::enableOTALibrary() {
@@ -58,17 +67,18 @@ void OTAState::enableOTALibrary() {
         return;
     }
 
-    Logger::logLn("enabling OTA library");
+    Logger::getInstance().logLn("enabling OTA library");
 
     ArduinoOTA.setPort(8266);
     ArduinoOTA.setHostname("crsf-visualizer");
 
-    ArduinoOTA.onStart([]() {
-        Logger::logLn("OTA Upload started");
+    ArduinoOTA.onStart([this]() {
+        Logger::getInstance().logLn("OTA Upload started");
+        this->_ledController->setAnimation(&_otaUploadAnimation);
     });
 
     ArduinoOTA.onEnd([]() {
-        Logger::logLn("\nOTA Upload finished");
+        Logger::getInstance().logLn("\nOTA Upload finished");
 
         // reboot
         ESP.restart();
@@ -77,17 +87,17 @@ void OTAState::enableOTALibrary() {
     ArduinoOTA.onProgress([this](unsigned int progress, unsigned int total) {
         uint8_t progressInPercent = (progress / (total / 100));
         otaUploadInProgress = true;
-        // TODO: why is it 100% green all the time??
-        // otaUploadProgressAnimation.setProgress(progressInPercent);
+        this->_otaUploadAnimation.setProgress(progressInPercent);
+        Serial.println("OTA Progress: " + progressInPercent);
     });
 
     ArduinoOTA.onError([this](ota_error_t error) {
         otaUploadInProgress = false;
-        if (error == OTA_AUTH_ERROR) Logger::logLn("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR) Logger::logLn("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR) Logger::logLn("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR) Logger::logLn("Receive Failed");
-        else if (error == OTA_END_ERROR) Logger::logLn("End Failed");
+        if (error == OTA_AUTH_ERROR) Logger::getInstance().logLn("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR) Logger::getInstance().logLn("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR) Logger::getInstance().logLn("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR) Logger::getInstance().logLn("Receive Failed");
+        else if (error == OTA_END_ERROR) Logger::getInstance().logLn("End Failed");
     });
 
     ArduinoOTA.begin();
@@ -95,29 +105,43 @@ void OTAState::enableOTALibrary() {
 
     _otaTask = this->_scheduler->every(200, [this]() {
         ArduinoOTA.handle();
+
+        bool throttleIsLow = RX::throttle <= CHANNEL_LOW_MAX;
+        bool yawIsRight = RX::yaw >= CHANNEL_HIGH_MIN;
+        bool pitchIsLow = RX::pitch <= CHANNEL_LOW_MAX;
+        bool rollIsLeft = RX::roll <= CHANNEL_LOW_MAX;
+
+        if (throttleIsLow && yawIsRight && pitchIsLow && rollIsLeft) {
+            Logger::getInstance().logLn("OTA disabled by RC");
+            ESP.restart();
+        }
     });
 
-    Logger::logLn("OTA library enabled");
+    this->_scheduler->timeout(WIFI_HOTSPOT_TIMEOUT, [this]() {
+        ESP.restart();
+    });
+
+    Logger::getInstance().logLn("OTA library enabled");
 }
 
 void OTAState::enter() {
-    Logger::logLn("OTAState::enter() - starting WiFi");
+    Logger::getInstance().logLn("OTAState::enter() - starting WiFi");
+    this->_otaUploadAnimation.setProgress(0);
     enableWifi();
 
-    Logger::logLn("OTAState::enter() - starting OTA library");
-    enableOTALibrary();
-
-    Logger::logLn("OTAState::enter() - done");
+    Logger::getInstance().logLn("OTAState::enter() - done");
 }
 
 void OTAState::leave() {
-    Logger::logLn("OTAState::leave() - terminating WiFi");
+    Logger::getInstance().logLn("OTAState::leave() - terminating WiFi");
     terminateWifi();
 
-    Logger::logLn("OTAState::leave() - terminating OTA library");
+    Logger::getInstance().logLn("OTAState::leave() - terminating OTA library");
     terminateOTALibrary();
 
-    Logger::logLn("OTAState::leave() - done");
+    _ledController->clear();
+
+    Logger::getInstance().logLn("OTAState::leave() - done");
 }
 
 void OTAState::terminateOTALibrary() {
@@ -125,7 +149,7 @@ void OTAState::terminateOTALibrary() {
 
     if (otaLibraryEnabled) {
         // no way to turn off ArduinoOTA, so we need to reboot
-        Logger::logLn("OTA disabled, rebooting");
+        Logger::getInstance().logLn("OTA disabled, rebooting");
         ESP.restart();
     }
 }
@@ -137,7 +161,7 @@ void OTAState::terminateWifi() {
     isInHotspotMode = false;
 
     if (wifiEnabled) {
-        Logger::logLn("disabling wifi");
+        Logger::getInstance().logLn("disabling wifi");
         #ifdef ESP32
             WiFi.setSleep(true);
         #else

@@ -3,15 +3,15 @@
 #include "logger.hpp"
 
 void LedController::begin() {
-    Logger::logLn("Setup LED...");
-    FastLED.addLeds<LED_TYPE, LED_PIN, LED_COLOR_ORDER>(this->leds, NUM_LEDS)
-        .setCorrection(TypicalLEDStrip);
-        
-    FastLED.setMaxPowerInVoltsAndMilliamps(LED_VOLTS, LED_MAX_MILLIAMPS);
+    Logger::getInstance().logLn("Setup LED...");
+    FastLED.addLeds<LED_TYPE, LED_PIN, LED_COLOR_ORDER>(this->leds, NUM_LEDS);
+    // FastLED.setCorrection(TypicalLEDStrip);
+    // FastLED.setMaxPowerInVoltsAndMilliamps(LED_VOLTS, LED_MAX_MILLIAMPS);
+    
+    // make up for the blue case
+    FastLED.setCorrection(CRGB(255, 255, 200));
 
-    clear();
-
-   Logger::logLn("done");
+    Logger::getInstance().logLn("done");
 };
 
 void LedController::setAnimation(AnimationBase* animation, bool clear) {
@@ -57,7 +57,9 @@ void LedController::clear() {
     setAnimation(&_emptyAnimation, false);
 };
 
-void LedController::setBrightness(uint8_t newBrightness) {
+void LedController::setBrightness(uint8_t newInputBrightness) {
+    int newBrightness = map(newInputBrightness, 0, 255, LED_MIN_DIMMED_BRIGHTNESS, 255);
+
     if (newBrightness == brightness) {
         return;
     }
