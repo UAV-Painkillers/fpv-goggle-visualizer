@@ -55,7 +55,7 @@ void WalkingRainbowStickReactiveAnimation::mapPos() {
             roll = 500;
         }
 
-        this->pos = map(roll, -500, 500, 0, NUM_LEDS);
+        this->pos = map(roll, 500, -500, 0, NUM_LEDS);
     }
 }
 
