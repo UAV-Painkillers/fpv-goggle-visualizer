@@ -9,6 +9,7 @@ int RX::pitch = CHANNEL_LOW_MAX;
 int RX::yaw = CHANNEL_LOW_MAX;
 int RX::ledBrightness = 255;
 bool RX::otaIsActive = false;
+bool RX::lampMode = false;
 
 void RX::begin() {
     Logger::getInstance().logLn("Setup RX...");
@@ -28,6 +29,7 @@ void RX::onChannelChanged() {
     throttle = crsf.getChannel(THROTTLE_CHANNEL);
     yaw = crsf.getChannel(YAW_CHANNEL);
     isArmed = crsf.getChannel(ARM_CHANNEL) >= CHANNEL_HIGH_MIN;
+
     ledSwitchIsOn = crsf.getChannel(LED_CONTROL_CHANNEL) >= CHANNEL_HIGH_MIN;
 
     int nextLedBrightness = 255;
@@ -39,9 +41,9 @@ void RX::onChannelChanged() {
     #ifdef LED_BRIGHTNESS_CHANNEL
         int ledBrightnessChannelValue = crsf.getChannel(LED_BRIGHTNESS_CHANNEL);
         if (LED_BRIGHTNESS_CHANNEL_INVERTED) {
-            nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 10, 255);
+            nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 0, 255);
         } else {
-            nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 255, 10);
+            nextLedBrightness = map(ledBrightnessChannelValue, CHANNEL_LOW_MAX, CHANNEL_HIGH_MIN, 255, 0);
         }
     #endif
 

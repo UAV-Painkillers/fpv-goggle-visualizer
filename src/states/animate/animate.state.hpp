@@ -11,7 +11,7 @@ enum AnimationType {
     ANIMATION_TYPE_OFF,
     ANIMATION_TYPE_ARMED,
     ANIMATION_TYPE_ARMED_HIGH_THROTTLE,
-    ANIMATION_TYPE_DISARMED,
+    ANIMATION_TYPE_DISARMED
 };
 
 class AnimateState: public BasicState {
@@ -36,6 +36,7 @@ class AnimateState: public BasicState {
         WalkingRainbowStickReactiveAnimation _armedAnimation;
         SingleColorBreathingAnimation _disarmedAnimation;
         bluefairy::TaskNode *_updateTask;
+        bluefairy::TaskNode *_lampTask;
         AnimationType _activeAnimation;
 
         void updateAnimation();

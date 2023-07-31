@@ -19,6 +19,7 @@ class RX {
         static int yaw;
         static int ledBrightness;
         static bool otaIsActive;
+        static bool lampMode;
     
         static void begin();
         static void loop();
