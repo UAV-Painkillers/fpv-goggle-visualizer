@@ -31,7 +31,7 @@ void WalkingRainbowStickReactiveAnimation::mapHue() {
             return;
         }
 
-        int yawSpeed = map(abs(yaw), 0, 500, 1, 20);
+        int yawSpeed = map(abs(yaw), 0, 500, 1, 50);
         int nextHue = this->hue;
         nextHue += yawSpeed * (yaw < 0 ? -1 : 1);
 
@@ -49,6 +49,8 @@ void WalkingRainbowStickReactiveAnimation::mapPos() {
     EVERY_N_MILLISECONDS(100) {
         int roll = trimStickPos(RX::roll) - 1500;
 
+        roll *= 1.6;
+
         if (roll < -500) {
             roll = -500;
         } else if (roll > 500) {
@@ -64,8 +66,11 @@ void WalkingRainbowStickReactiveAnimation::mapWidth() {
     // stick is from 1000 to 2000 with center at 1500
 
     int pitch = trimStickPos(RX::pitch);
+
     int center = 1500;
     int distanceFromCenter = abs(pitch - center);
+
+    distanceFromCenter *= 1.6;
     
     int minWidth = NUM_LEDS * 0.3;
     int maxWidth = NUM_LEDS * 0.8;

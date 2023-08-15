@@ -16,7 +16,7 @@ class WalkingRainbowStickReactiveAnimation : public AnimationBase {
         uint8_t pos = NUM_LEDS / 2; // controlled by roll
         uint8_t width = 5; // controlled by pitch
         uint8_t brightness = 255; // controlled by throttle
-        const uint8_t highThrottle = 80; // percent
+        const uint8_t highThrottle = 90; // percent
         int highThrottleBlinkInterval = 100;
         bool highThrottleBlinkState = false;
 
