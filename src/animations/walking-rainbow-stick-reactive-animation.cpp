@@ -72,8 +72,8 @@ void WalkingRainbowStickReactiveAnimation::mapWidth() {
 
     distanceFromCenter *= 1.6;
     
-    int minWidth = NUM_LEDS * 0.3;
-    int maxWidth = NUM_LEDS * 0.8;
+    int minWidth = NUM_LEDS * 0.4;
+    int maxWidth = NUM_LEDS * 0.9;
     this->width = map(distanceFromCenter, 0, 500, minWidth, maxWidth);
 }
 
@@ -89,7 +89,7 @@ void WalkingRainbowStickReactiveAnimation::render() {
         this->setLed(i, CRGB::Black);
     }
 
-    if (RX::throttle > (CHANNEL_HIGH_MIN / 100 * this->highThrottle)) {
+    if (RX::throttle > (CHANNEL_HIGH_MIN * this->highThrottleThresholdPercentage)) {
         EVERY_N_MILLISECONDS(this->highThrottleBlinkInterval) {
             this->highThrottleBlinkState = !this->highThrottleBlinkState;
         }

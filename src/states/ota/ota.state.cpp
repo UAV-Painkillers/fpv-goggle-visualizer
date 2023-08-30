@@ -106,12 +106,7 @@ void OTAState::enableOTALibrary() {
     _otaTask = this->_scheduler->every(200, [this]() {
         ArduinoOTA.handle();
 
-        bool throttleIsLow = RX::throttle <= CHANNEL_LOW_MAX;
-        bool yawIsRight = RX::yaw >= CHANNEL_HIGH_MIN;
-        bool pitchIsLow = RX::pitch <= CHANNEL_LOW_MAX;
-        bool rollIsLeft = RX::roll <= CHANNEL_LOW_MAX;
-
-        if (throttleIsLow && yawIsRight && pitchIsLow && rollIsLeft) {
+        if (!RX::isArmed && RX::sticksAreAtTopOutside) {
             Logger::getInstance().logLn("OTA disabled by RC");
             ESP.restart();
         }

@@ -8,7 +8,10 @@ int RX::roll = CHANNEL_LOW_MAX;
 int RX::pitch = CHANNEL_LOW_MAX;
 int RX::yaw = CHANNEL_LOW_MAX;
 int RX::ledBrightness = 255;
-bool RX::otaIsActive = false;
+bool RX::sticksAreAtTopCenter = false;
+bool RX::sticksAreAtBottomCenter = false;
+bool RX::sticksAreAtTopOutside = false;
+bool RX::sticksAreAtBottomInside = false;
 bool RX::lampMode = false;
 
 void RX::begin() {
@@ -23,15 +26,49 @@ void RX::loop() {
     crsf.loop();
 }
 
-void RX::onChannelChanged() {
-    roll = crsf.getChannel(ROLL_CHANNEL);
-    pitch = crsf.getChannel(PITCH_CHANNEL);
-    throttle = crsf.getChannel(THROTTLE_CHANNEL);
-    yaw = crsf.getChannel(YAW_CHANNEL);
-    isArmed = crsf.getChannel(ARM_CHANNEL) >= CHANNEL_HIGH_MIN;
+inline void updateSticksAreAtTopCenter() {
+    RX::sticksAreAtTopCenter = false;
 
-    ledSwitchIsOn = crsf.getChannel(LED_CONTROL_CHANNEL) >= CHANNEL_HIGH_MIN;
+    // throttle or pitch not fully up
+    if (RX::throttle < CHANNEL_HIGH_MIN || RX::pitch < CHANNEL_HIGH_MIN) {
+      return;
+    }
 
+    // yaw not centered
+    if (RX::yaw < CHANNEL_CENTER_START || RX::yaw > CHANNEL_CENTER_END) {
+      return;
+    }
+
+    // roll not centered
+    if (RX::roll < CHANNEL_CENTER_START || RX::roll > CHANNEL_CENTER_END) {
+      return;
+    }
+
+    RX::sticksAreAtTopCenter = true;
+}
+
+inline void updateSticksAreAtBottomCenter() {
+    RX::sticksAreAtBottomCenter = false;
+
+    // throttle or pitch not fully down
+    if (RX::throttle > CHANNEL_LOW_MAX || RX::pitch > CHANNEL_LOW_MAX) {
+      return;
+    }
+
+    // yaw not centered
+    if (RX::yaw < CHANNEL_CENTER_START || RX::yaw > CHANNEL_CENTER_END) {
+      return;
+    }
+
+    // roll not centered
+    if (RX::roll < CHANNEL_CENTER_START || RX::roll > CHANNEL_CENTER_END) {
+      return;
+    }
+
+    RX::sticksAreAtBottomCenter = true;
+}
+
+inline void updateLedBrightnessState() {
     int nextLedBrightness = 255;
 
     #ifdef LED_BRIGHTNESS
@@ -47,31 +84,46 @@ void RX::onChannelChanged() {
         }
     #endif
 
-    if (nextLedBrightness != ledBrightness) {
-        ledBrightness = nextLedBrightness;
+    if (nextLedBrightness != RX::ledBrightness) {
+        RX::ledBrightness = nextLedBrightness;
+    }
+}
+
+inline void updateOtaIsActiveState() {
+    RX::sticksAreAtBottomInside = false;
+    RX::sticksAreAtTopOutside = false;
+
+    // sticks to the top outside position
+    if (
+        RX::throttle >= CHANNEL_HIGH_MIN &&
+        RX::yaw <= CHANNEL_LOW_MAX &&
+        RX::roll >= CHANNEL_HIGH_MIN &&
+        RX::pitch >= CHANNEL_HIGH_MIN
+    ) {
+        RX::sticksAreAtTopOutside = true;
     }
 
-    // enable ota
-    // disarmed, led on and sticks to the top outside position
+    // sticks to the bottom inside position
     if (
-        !isArmed &&
-        throttle >= CHANNEL_HIGH_MIN &&
-        yaw <= CHANNEL_LOW_MAX &&
-        roll >= CHANNEL_HIGH_MIN &&
-        pitch >= CHANNEL_HIGH_MIN
+        RX::throttle <= CHANNEL_LOW_MAX &&
+        RX::yaw >= CHANNEL_HIGH_MIN &&
+        RX::roll <= CHANNEL_LOW_MAX &&
+        RX::pitch <= CHANNEL_LOW_MAX
     ) {
-        otaIsActive = true;
+        RX::sticksAreAtBottomInside = true;
     }
+}
 
-    // disable ota
-    // disarmed, led on and sticks to the bottom inside position
-    if (
-        !isArmed &&
-        throttle <= CHANNEL_LOW_MAX &&
-        yaw >= CHANNEL_HIGH_MIN &&
-        roll <= CHANNEL_LOW_MAX &&
-        pitch <= CHANNEL_LOW_MAX
-    ) {
-        otaIsActive = false;
-    }
+void RX::onChannelChanged() {
+    roll = crsf.getChannel(ROLL_CHANNEL);
+    pitch = crsf.getChannel(PITCH_CHANNEL);
+    throttle = crsf.getChannel(THROTTLE_CHANNEL);
+    yaw = crsf.getChannel(YAW_CHANNEL);
+    isArmed = crsf.getChannel(ARM_CHANNEL) >= CHANNEL_HIGH_MIN;
+    ledSwitchIsOn = crsf.getChannel(LED_CONTROL_CHANNEL) >= CHANNEL_HIGH_MIN;
+
+    updateLedBrightnessState();
+    updateOtaIsActiveState();
+    updateSticksAreAtTopCenter();
+    updateSticksAreAtBottomCenter();
 }

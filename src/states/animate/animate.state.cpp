@@ -27,7 +27,7 @@ void AnimateState::updateArmedAnimation() {
 }
 
 void AnimateState::updateAnimation() {
-    if (RX::otaIsActive) {
+    if (RX::sticksAreAtBottomInside && !RX::isArmed) {
         Logger::getInstance().logLn("AnimateState::updateAnimation() - going to AppState::APP_STATE_OTA");
         _stateMachine->toState(AppState::APP_STATE_OTA);
         return;

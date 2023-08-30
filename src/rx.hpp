@@ -18,8 +18,11 @@ class RX {
         static int pitch;
         static int yaw;
         static int ledBrightness;
-        static bool otaIsActive;
+        static bool sticksAreAtTopOutside;
+        static bool sticksAreAtBottomInside;
         static bool lampMode;
+        static bool sticksAreAtTopCenter;
+        static bool sticksAreAtBottomCenter;
     
         static void begin();
         static void loop();

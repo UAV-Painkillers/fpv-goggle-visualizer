@@ -21,6 +21,8 @@
 // Channel Values --------------------------------
 #define CHANNEL_HIGH_MIN 1999
 #define CHANNEL_LOW_MAX 1001
+#define CHANNEL_CENTER_START 1400
+#define CHANNEL_CENTER_END 1600
 
 // Channel mapping -------------------------------
 #define ARM_CHANNEL 5
@@ -59,3 +61,10 @@
 #define WIFI_HOTSPOT_PASSWORD "blinkyblink"
 // wifi will automatically shut down after 3 minutes of waiting for OTA connections
 #define WIFI_HOTSPOT_TIMEOUT 180000 // 3 minutes in ms (3 * 60 * 1000)
+
+// Head Tracker ----------------------------------
+
+#define HEAD_TRACKER_FEEDBACK_PIN 5
+#define HEAD_TRACKER_MAX_ANGLE_OFFSET 20
+#define HEAD_TRACKER_MPU_SDA_PIN 6
+#define HEAD_TRACKER_MPU_SCL_PIN 7

@@ -11,11 +11,14 @@
 #include "states/animate/animate.state.hpp"
 #include "states/lamp/lamp.state.hpp"
 #include "rx.hpp"
+#include "head-tracker.hpp"
 
 bluefairy::Scheduler logicScheduler;
+bluefairy::Scheduler headTrackerScheduler;
 bluefairy::Scheduler ledScheduler;
 AppStateMachine stateMachine;
 LedController ledController;
+HeadTracker headTracker;
 
 OTAState otaState(&stateMachine, &logicScheduler, &ledController);
 BootingState bootingState(&stateMachine, &logicScheduler, &ledController);
@@ -57,18 +60,6 @@ inline void setupStateMachine() {
   Logger::getInstance().logLn("logicTaskHandlerSetup() - done");
 }
 
-#ifdef ESP32
-  TaskHandle_t LedTask;
-  void LedTaskHandler(void * parameter) {
-    ledTaskHandlerSetup();
-
-    for (;;) {
-      ledTaskHandlerLoop();
-    }
-  }
-
-#endif
-
 void setup()
 {
   Logger::getInstance().begin();
@@ -78,28 +69,71 @@ void setup()
   RX::begin();
   logicScheduler.every(1, []() { RX::loop(); });
 
-  #ifdef ESP32
-    Logger::getInstance().logLn("ESP32 detected, starting led task");
-    xTaskCreatePinnedToCore(
-        LedTaskHandler,
-        "LED",
-        10000,
-        NULL,
-        0,
-        &LedTask,
-        0
-    );
-  #else
-    Logger::getInstance().logLn("ESP32 not detected, running setup() in main thread");
-    ledTaskHandlerSetup();
-  #endif
+  xTaskCreateUniversal(
+      [] (void *pvParameter) {
+        ledTaskHandlerSetup();
+
+        for (;;) {
+          ledTaskHandlerLoop();
+        }
+      },
+      "LED",
+      10000,
+      NULL,
+      0,
+      NULL,
+      -1
+  );
+
+  xTaskCreateUniversal(
+      [] (void *pvParameter) {
+          for (;;) {
+              headTrackerScheduler.loop();
+          }
+      },
+      "HeadTracker",
+      10000,
+      NULL,
+      1,
+      NULL,
+      -1
+  );
+
+  xTaskCreateUniversal(
+      [] (void *pvParameter) {
+          for (;;) {
+              logicScheduler.loop();
+          }
+      },
+      "Logic",
+      10000,
+      NULL,
+      1,
+      NULL,
+      -1
+  );
+
+  headTracker.begin();
+  headTrackerScheduler.every(200, []() { 
+    //if (RX::setHeadTrackerOrigin) {
+      //headTracker.setOrigin();
+    //}
+
+    headTracker.tick();
+  });
+  headTrackerScheduler.every(200, []() {
+    if (RX::sticksAreAtTopCenter && !RX::isArmed) {
+      headTracker.setOrigin();
+      headTracker.enableFeedback();
+    }
+
+    if (RX::sticksAreAtBottomCenter && !RX::isArmed) {
+      headTracker.disableFeedback();
+    }
+  });
 
   Logger::getInstance().logLn("setup() done, starting loop()");
 }
 
 void loop() {
-  #ifndef ESP32
-    ledTaskHandlerLoop();
-  #endif
-  logicScheduler.loop();
 }
