@@ -33,12 +33,13 @@
 #define YAW_CHANNEL 4
 
 // LED -------------------------------------------
-#define NUM_LEDS 28
-#define LED_PIN 16
-#define LED_VOLTS 5
-#define LED_MAX_MILLIAMPS 500
-#define LED_TYPE WS2812
-#define LED_COLOR_ORDER GRB
+#ifdef IS_GOGGLE
+    #define NUM_LEDS 28
+    #define LED_PIN 16
+    #define LED_VOLTS 5
+    #define LED_MAX_MILLIAMPS 500
+    #define LED_TYPE WS2812
+    #define LED_COLOR_ORDER GRB
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
 #define BOOT_ANIMATION_DURATION_MS 3000
 // #define LED_BRIGHTNESS 255 // sets the brightness to a constant value if you dont want to use a channel
@@ -65,6 +66,6 @@
 // Head Tracker ----------------------------------
 
 #define HEAD_TRACKER_FEEDBACK_PIN 5
-#define HEAD_TRACKER_MAX_ANGLE_OFFSET 20
+#define HEAD_TRACKER_MAX_ANGLE_OFFSET 7
 #define HEAD_TRACKER_MPU_SDA_PIN 6
 #define HEAD_TRACKER_MPU_SCL_PIN 7
