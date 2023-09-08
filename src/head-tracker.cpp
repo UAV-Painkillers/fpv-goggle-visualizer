@@ -18,9 +18,9 @@ void HeadTracker::giveFeedback(uint8_t feedbackDuration, uint8_t pauseDuration, 
     }
 
     for (int i = 0; i < feedbackCount; i++) {
-        digitalWrite(HEAD_TRACKER_FEEDBACK_PIN, LOW);
-        delay(feedbackDuration);
         digitalWrite(HEAD_TRACKER_FEEDBACK_PIN, HIGH);
+        delay(feedbackDuration);
+        digitalWrite(HEAD_TRACKER_FEEDBACK_PIN, LOW);
         delay(pauseDuration);
     }
 }
@@ -35,7 +35,7 @@ void HeadTracker::disableFeedback() {
 
 void HeadTracker::begin() {
     pinMode(HEAD_TRACKER_FEEDBACK_PIN, OUTPUT);
-    digitalWrite(HEAD_TRACKER_FEEDBACK_PIN, HIGH);
+    digitalWrite(HEAD_TRACKER_FEEDBACK_PIN, LOW);
 
     Wire.begin(HEAD_TRACKER_MPU_SDA_PIN, HEAD_TRACKER_MPU_SCL_PIN);
     Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
@@ -79,8 +79,8 @@ void HeadTracker::begin() {
             giveFeedback(5000, 1000, 1, false);
         }
     }
-
-    giveFeedback(300, 300, 5, true);
+    
+    giveFeedback(1500, 500, 3, true);
 }
 
 void HeadTracker::setOrigin() {
@@ -89,7 +89,7 @@ void HeadTracker::setOrigin() {
     originDegree[1] = this->currentDegree[1];
     originDegree[2] = this->currentDegree[2];
 
-    giveFeedback(4000, 1000, 1, true);
+    giveFeedback(10000, 1000, 1, true);
 }
 
 void HeadTracker::updateOrientation() {
@@ -124,6 +124,6 @@ void HeadTracker::tick() {
 
     if (didMoveTooMuch) {
         // vibrate for as many times as the offset is too high
-        giveFeedback(100, 200, 1);
+        giveFeedback(400, 300, 1);
     }
 }
