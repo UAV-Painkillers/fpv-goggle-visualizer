@@ -33,13 +33,12 @@
 #define YAW_CHANNEL 4
 
 // LED -------------------------------------------
-#ifdef IS_GOGGLE
-    #define NUM_LEDS 28
-    #define LED_PIN 16
-    #define LED_VOLTS 5
-    #define LED_MAX_MILLIAMPS 500
-    #define LED_TYPE WS2812
-    #define LED_COLOR_ORDER GRB
+#define NUM_LEDS 28
+#define LED_PIN 16
+#define LED_VOLTS 5
+#define LED_MAX_MILLIAMPS 500
+#define LED_TYPE WS2812
+#define LED_COLOR_ORDER GRB
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
 #define BOOT_ANIMATION_DURATION_MS 3000
 // #define LED_BRIGHTNESS 255 // sets the brightness to a constant value if you dont want to use a channel
