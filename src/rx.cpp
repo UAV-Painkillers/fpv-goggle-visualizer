@@ -12,7 +12,6 @@ bool RX::sticksAreAtTopCenter = false;
 bool RX::sticksAreAtBottomCenter = false;
 bool RX::sticksAreAtTopOutside = false;
 bool RX::sticksAreAtBottomInside = false;
-bool RX::lampMode = false;
 
 void RX::begin() {
     Logger::getInstance().logLn("Setup RX...");

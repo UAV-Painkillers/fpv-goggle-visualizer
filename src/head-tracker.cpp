@@ -12,7 +12,7 @@ MPU6050 mpu;
 
 #define JAPPY_HEADTRACKER_GLOBALS
 
-void HeadTracker::giveFeedback(uint8_t feedbackDuration, uint8_t pauseDuration, uint8_t feedbackCount, bool force = false) {
+void HeadTracker::giveFeedback(uint16_t feedbackDuration, uint16_t pauseDuration, uint16_t feedbackCount, bool force = false) {
     if (!feedbackEnabled && !force) {
         return;
     }

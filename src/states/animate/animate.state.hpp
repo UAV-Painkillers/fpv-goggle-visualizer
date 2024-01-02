@@ -36,7 +36,6 @@ class AnimateState: public BasicState {
         WalkingRainbowStickReactiveAnimation _armedAnimation;
         SingleColorBreathingAnimation _disarmedAnimation;
         bluefairy::TaskNode *_updateTask;
-        bluefairy::TaskNode *_lampTask;
         AnimationType _activeAnimation;
 
         void updateAnimation();

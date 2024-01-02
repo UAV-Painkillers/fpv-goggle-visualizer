@@ -20,7 +20,6 @@ class RX {
         static int ledBrightness;
         static bool sticksAreAtTopOutside;
         static bool sticksAreAtBottomInside;
-        static bool lampMode;
         static bool sticksAreAtTopCenter;
         static bool sticksAreAtBottomCenter;
     

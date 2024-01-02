@@ -41,11 +41,11 @@
 #define LED_COLOR_ORDER GRB
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference#setting-hsv-colors-
 #define BOOT_ANIMATION_DURATION_MS 3000
-// #define LED_BRIGHTNESS 255 // sets the brightness to a constant value if you dont want to use a channel
+#define LED_BRIGHTNESS 255 // sets the brightness to a constant value if you dont want to use a channel
 #define LED_MIN_DIMMED_BRIGHTNESS 70 // off is still 0, this is only for "dimmed" effects
 #define LED_MAX_BRIGHTNESS 255
 // comment out if you want to use a fixed brightness value from LED_BRIGHTNESS (above)
-#define LED_BRIGHTNESS_CHANNEL 9
+// #define LED_BRIGHTNESS_CHANNEL 9
 #define LED_BRIGHTNESS_CHANNEL_INVERTED true
 #define LED_FPS 120
 

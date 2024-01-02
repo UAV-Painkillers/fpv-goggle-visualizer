@@ -9,12 +9,6 @@ void AnimateState::enter() {
         updateAnimation();
     });
 
-    _lampTask = _scheduler->every(200, [this]() {
-        if (RX::ledBrightness == 0) {
-            _stateMachine->toState(AppState::APP_STATE_LAMP);
-        }
-    });
-
     Logger::getInstance().logLn("AnimateState::enter() - done");
 }
 
@@ -59,9 +53,6 @@ void AnimateState::leave() {
     Logger::getInstance().logLn("AnimateState::leave() - cancelling animation update task");
     _updateTask->cancel();
     _scheduler->removeTask(_updateTask);
-
-    _lampTask->cancel();
-    _scheduler->removeTask(_lampTask);
 
     _activeAnimation = ANIMATION_TYPE_OFF;
 

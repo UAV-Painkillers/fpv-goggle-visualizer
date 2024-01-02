@@ -9,7 +9,6 @@
 #include "states/booting/booting.state.hpp"
 #include "states/ota/ota.state.hpp"
 #include "states/animate/animate.state.hpp"
-#include "states/lamp/lamp.state.hpp"
 #include "rx.hpp"
 #include "head-tracker.hpp"
 
@@ -23,7 +22,6 @@ HeadTracker headTracker;
 OTAState otaState(&stateMachine, &logicScheduler, &ledController);
 BootingState bootingState(&stateMachine, &logicScheduler, &ledController);
 AnimateState animateState(&stateMachine, &logicScheduler, &ledController);
-LampState lampState(&stateMachine, &logicScheduler, &ledController);
 
 inline void ledTaskHandlerSetup() {
   Logger::getInstance().logLn("ledTaskHandlerSetup() - starting");
@@ -52,7 +50,6 @@ inline void setupStateMachine() {
   stateMachine[AppState::APP_STATE_BOOTING] = bootingState;
   stateMachine[AppState::APP_STATE_OTA] = otaState;
   stateMachine[AppState::APP_STATE_ANIMATE] = animateState;
-  stateMachine[AppState::APP_STATE_LAMP] = lampState;
 
   Logger::getInstance().logLn("logicTaskHandlerSetup() - starting state machine");
   stateMachine.toState(AppState::APP_STATE_BOOTING);

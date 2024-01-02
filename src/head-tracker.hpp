@@ -18,6 +18,6 @@ class HeadTracker {
         double currentDegree[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
         double originDegree[3];   // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
-        void giveFeedback(uint8_t feedbackDuration, uint8_t pauseDuration, uint8_t feedbackCount, bool force);
+        void giveFeedback(uint16_t feedbackDuration, uint16_t pauseDuration, uint16_t feedbackCount, bool force);
         void updateOrientation();
 };
